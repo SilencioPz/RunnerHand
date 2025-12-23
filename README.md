@@ -1,6 +1,6 @@
-RunnerHand - Speedrun Timer 🎮⏱️
+# RunnerHand - Speedrun Timer 🎮⏱️
 
-RunnerHand é um timer de speedrun amador desenvolvido em Java, projetado para controle preciso sobre splits com recursos avançados de personalização.
+**RunnerHand** é um timer de speedrun amador desenvolvido em Java, projetado para controle preciso sobre splits com recursos avançados de personalização.
 --------------------------------------------------------------------------------------
 ✨ Recursos Principais
 --------------------------------------------------------------------------------------
