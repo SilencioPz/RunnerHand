@@ -1,0 +1,66 @@
+### IntelliJ IDEA ###
+.idea/
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### Kotlin ###
+.kotlin
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+### Arquivos sensíveis ###
+*.env
+*.key
+*.pem
+*.p12
+*.keystore
+*.jks
+*.cer
+*.crt
+
+### Arquivos de configuração local ###
+*.properties
+application*.yml
+application*.yaml
+application*.properties
+
+### Logs ###
+logs/
+*.log
+
+### Arquivos do sistema ###
+Thumbs.db
+
+### Arquivos do projeto ###
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.iml
+*.ipr
+*.iws
