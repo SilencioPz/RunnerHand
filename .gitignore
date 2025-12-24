@@ -63,4 +63,13 @@ Thumbs.db
 *.tar.gz
 *.iml
 *.ipr
-*.iws
+*.iwssrc/resources/temp_split_*.png
+src/resources/background.jpg
+src/resources/temp_split_0.png
+src/resources/temp_split_1.png
+src/resources/temp_split_2.png
+src/resources/temp_split_3.png
+src/resources/temp_split_4.png
+src/resources/temp_split_5.png
+src/resources/temp_split_6.png
+src/resources/temp_split_7.png
