@@ -1,0 +1,42 @@
+🛠️ Passo a Passo: Criar o JAR Manualmente e um Atalho
+
+Siga estes passos a partir do diretório raiz do seu projeto Java (onde estão src/ e seus arquivos .java).
+    1. Compilar os arquivos .java: Abra um terminal e navegue até a pasta do seu projeto. Execute o comando para compilar todos os seus arquivos de código-fonte.
+		javac -d bin src/**/*.java
+    • Isso cria os arquivos .class em uma pasta bin/.
+    • Criar o arquivo JAR executável: Use o comando jar para criar o arquivo final. Aqui, você deve especificar a classe principal (RunnerHandGUI ou Main) e incluir todos os recursos, como as imagens da pasta src/resources/.
+jar cfe RunnerHand.jar RunnerHandGUI -C bin . -C src/resources .
+        ◦ cfe: Cria um JAR com entrada principal especificada.
+        ◦ RunnerHand.jar: Nome do seu arquivo JAR final.
+        ◦ RunnerHandGUI: Classe que tem o método main() (ajuste se necessário).
+        ◦ -C bin .: Inclui o conteúdo da pasta bin/.
+        ◦ -C src/resources .: Inclui o conteúdo da pasta src/resources/.
+       O JAR será criado no mesmo diretório onde você executou o comando.
+
+📌 Passo a Passo: Criar um Atalho na Área de Trabalho (Linux)
+
+Com o JAR em mãos, você pode criar facilmente um atalho, também chamado de arquivo .desktop. Os usuários podem fazer isso manualmente, mas você também pode documentar o processo para eles.
+A estrutura básica de um arquivo .desktop é mostrada abaixo
+. Criar esse arquivo é simples:
+    1. Criar o arquivo: Na sua área de trabalho ou em uma pasta conveniente, crie um novo arquivo de texto chamado, por exemplo, RunnerHand.desktop.
+    2. Conteúdo do arquivo: Cole o conteúdo abaixo no arquivo e substitua os caminhos pelos seus.
+
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=RunnerHand
+Comment=Speedrun Timer by SilencioPz
+Exec=java -jar /caminho/para/RunnerHand.jar
+Icon=/caminho/para/um/icone/opcional.png
+Terminal=false
+StartupNotify=false
+Categories=Utility;
+Pontos importantes:
+    • Exec: O comando para rodar seu programa. O caminho absoluto (/home/usuario/.../RunnerHand.jar) é mais confiável
+. O comando de fato é java -jar nome_do_arquivo.jar
+    • Icon (opcional): Caminho para um arquivo de ícone PNG ou SVG.
+    • Terminal: Deixe false para rodar com interface gráfica.
+    • Path: Você pode omitir esta linha, ou apontar para a pasta onde o JAR está salvo para evitar problemas de escrita.
+    • Tornar o arquivo executável: Após salvar, você precisa alterar sua permissão. No terminal, execute:
+chmod +x ~/Desktop/RunnerHand.desktop
+Agora você pode clicar duas vezes no novo ícone para iniciar o aplicativo. Para adicionar o programa ao menu de aplicativos do sistema (como no Mint ou Ubuntu), copie o arquivo .desktop para a pasta /usr/share/applications/.
