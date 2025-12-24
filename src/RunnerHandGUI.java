@@ -1,7 +1,5 @@
 //comando para gerar JAR: javac -d bin **/*.java DENTRO da pasta do Projeto (utilize Terminal no IntelliJ)
 
-//NÃO ESTÁ CARREGANDO A IMAGEM silenciopz_logo2icon.png QUANDO SE É CRIADO O JAR! Verificar pq!!!
-
 import java.util.Base64;
 import java.io.FileOutputStream;
 import javax.swing.*;
@@ -42,6 +40,9 @@ public class RunnerHandGUI {
     private final Color GREEN_COLOR = new Color(0, 255, 128);
     private final Color RED_COLOR = new Color(255, 100, 100);
     private final Color GOLD_COLOR = new Color(255, 215, 0);
+    private final Color TRANSPARENT_DARK = new Color(30, 30, 30, 120);
+    private final Color TRANSPARENT_PANEL = new Color(45, 45, 45, 150);
+    private final Color TRANSPARENT_BLACK = new Color(0, 0, 0, 100);
 
     public RunnerHandGUI() {
         timer = new MyTimer();
@@ -187,7 +188,9 @@ public class RunnerHandGUI {
 
         titlePanel = new JPanel(new BorderLayout(10, 10));
 
-        titlePanel.setBackground(new Color(0, 0, 0, 180));
+        titlePanel.setBackground(new Color(0, 0, 0, 150));
+
+        titlePanel.setOpaque(true);
 
         titlePanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 2, 0, ACCENT_COLOR),
@@ -363,8 +366,9 @@ public class RunnerHandGUI {
 
     private JPanel createTimerPanel() {
         JPanel topPanel = new JPanel(new BorderLayout(15, 15));
-        topPanel.setBackground(new Color(0, 0, 0, 160));
+        topPanel.setBackground(TRANSPARENT_BLACK);
         topPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        topPanel.setOpaque(false);
 
         JLabel logoLabel = ImageLoader.loadLogo("src/resources/silenciopz_logo2icon.png", 120, 0);
         if (logoLabel.getIcon() == null) {
@@ -372,10 +376,12 @@ public class RunnerHandGUI {
             logoLabel.setFont(new Font("Arial", Font.BOLD, 16));
             logoLabel.setForeground(ACCENT_COLOR);
         }
+        logoLabel.setOpaque(false);
         topPanel.add(logoLabel, BorderLayout.WEST);
 
         JPanel timePanel = new JPanel(new BorderLayout());
-        timePanel.setBackground(DARK_PANEL);
+        timePanel.setBackground(TRANSPARENT_PANEL);
+        timePanel.setOpaque(true);
         timePanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(ACCENT_COLOR, 3),
                 BorderFactory.createEmptyBorder(15, 20, 15, 20)
@@ -384,6 +390,7 @@ public class RunnerHandGUI {
         timeLabel = new JLabel("00:00:00.00", SwingConstants.CENTER);
         timeLabel.setFont(new Font("Monospaced", Font.BOLD, 52));
         timeLabel.setForeground(LIGHT_TEXT);
+        timeLabel.setOpaque(false);
         timePanel.add(timeLabel, BorderLayout.CENTER);
 
         topPanel.add(timePanel, BorderLayout.CENTER);
@@ -393,12 +400,14 @@ public class RunnerHandGUI {
 
     private JPanel createSplitsPanel() {
         JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
-        centerPanel.setBackground(new Color(0, 0, 0, 180));
+        centerPanel.setBackground(TRANSPARENT_BLACK);
         centerPanel.setBorder(BorderFactory.createEmptyBorder(0, 15, 15, 15));
+        centerPanel.setOpaque(false);
 
         JLabel splitsLabel = new JLabel("SPLITS");
         splitsLabel.setFont(new Font("Arial", Font.BOLD, 16));
         splitsLabel.setForeground(ACCENT_COLOR);
+        splitsLabel.setOpaque(false);
         centerPanel.add(splitsLabel, BorderLayout.NORTH);
 
         String[] columns = {"", "#", "Nome", "Tempo", "Diferença", "Melhor"};
@@ -415,14 +424,17 @@ public class RunnerHandGUI {
         };
 
         splitsTable = new JTable(tableModel);
-        splitsTable.setBackground(DARK_PANEL);
+        splitsTable.setBackground(TRANSPARENT_PANEL);
         splitsTable.setForeground(LIGHT_TEXT);
-        splitsTable.setGridColor(new Color(60, 60, 60));
-        splitsTable.setSelectionBackground(HIGHLIGHT_COLOR);
+        splitsTable.setGridColor(new Color(60, 60, 60, 100));
+        splitsTable.setSelectionBackground(new Color(0, 100, 200, 150));
         splitsTable.setFont(new Font("Monospaced", Font.BOLD, 13));
-        splitsTable.getTableHeader().setBackground(new Color(50, 50, 50));
+        splitsTable.setOpaque(true);
+
+        splitsTable.getTableHeader().setBackground(new Color(50, 50, 50, 180));
         splitsTable.getTableHeader().setForeground(ACCENT_COLOR);
         splitsTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 13));
+        splitsTable.getTableHeader().setOpaque(true);
         splitsTable.setRowHeight(40);
 
         TableColumn iconColumn = splitsTable.getColumnModel().getColumn(0);
@@ -449,10 +461,10 @@ public class RunnerHandGUI {
                 }
 
                 if (row == run.getCurrentSplitIndex() && timer.isRunning()) {
-                    c.setBackground(new Color(70, 70, 100));
+                    c.setBackground(new Color(70, 70, 100, 180));
                     setFont(getFont().deriveFont(Font.BOLD));
                 } else {
-                    c.setBackground(DARK_PANEL);
+                    c.setBackground(TRANSPARENT_PANEL);
                     setFont(getFont().deriveFont(Font.PLAIN));
                 }
 
@@ -491,9 +503,9 @@ public class RunnerHandGUI {
                 }
 
                 if (row == run.getCurrentSplitIndex() && timer.isRunning()) {
-                    setBackground(new Color(70, 70, 100));
+                    setBackground(new Color(70, 70, 100, 180));
                 } else {
-                    setBackground(DARK_PANEL);
+                    setBackground(TRANSPARENT_PANEL);
                 }
 
                 return this;
@@ -502,22 +514,29 @@ public class RunnerHandGUI {
 
         JScrollPane scrollPane = new JScrollPane(splitsTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(ACCENT_COLOR, 2));
-        scrollPane.getViewport().setBackground(DARK_PANEL);
+        scrollPane.getViewport().setBackground(TRANSPARENT_PANEL);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(true);
 
         centerPanel.add(scrollPane, BorderLayout.CENTER);
         return centerPanel;
     }
 
     private JPanel createButtonPanel(JFrame frame) {
-        JPanel bottomPanel = new JPanel(new GridLayout(2, 3, 10, 10));
-        bottomPanel.setBackground(new Color(0, 0, 0, 180));
+        JPanel bottomPanel = new JPanel(new GridLayout(2, 4, 10, 10));
+        bottomPanel.setBackground(new Color(0, 0, 0, 150));
         bottomPanel.setBorder(BorderFactory.createEmptyBorder(10, 15, 15, 15));
+        bottomPanel.setOpaque(true);
 
         configButton = createStyledButton("Config");
         configButton.addActionListener(e -> openConfigDialog());
 
         settingsButton = createStyledButton("Teclas");
         settingsButton.addActionListener(e -> openKeyConfigDialog());
+
+        JButton backgroundButton = createStyledButton("Fundo");
+        backgroundButton.setToolTipText("Alterar imagem de fundo");
+        backgroundButton.addActionListener(e -> changeBackgroundImage());
 
         startPauseButton = createStyledButton("Iniciar");
         startPauseButton.addActionListener(e -> handleStartPause(frame));
@@ -540,12 +559,13 @@ public class RunnerHandGUI {
 
         bottomPanel.add(configButton);
         bottomPanel.add(settingsButton);
+        bottomPanel.add(backgroundButton);
         bottomPanel.add(startPauseButton);
         bottomPanel.add(splitButton);
         bottomPanel.add(resetButton);
         bottomPanel.add(finishButton);
         bottomPanel.add(htmlButton);
-        bottomPanel.add(saveButton);
+//        bottomPanel.add(saveButton);
 
         return bottomPanel;
     }
@@ -618,16 +638,29 @@ public class RunnerHandGUI {
 
     private void handleReset() {
         timer.reset();
+
+        java.util.List<Split> currentSplits = new java.util.ArrayList<>();
+        for (Split split : run.getSplits()) {
+            Split newSplit = new Split(split.getName());
+            newSplit.setImagePath(split.getImagePath());
+            currentSplits.add(newSplit);
+        }
+
         String currentTitle = run.getRunTitle();
         run = new Run(currentTitle);
-        tableModel.setRowCount(0);
-        isConfigured = false;
+
+        for (int i = 0; i < currentSplits.size(); i++) {
+            Split split = currentSplits.get(i);
+            run.addSplit(split.getName(), split.getImagePath());
+        }
 
         startPauseButton.setText("Iniciar");
         startPauseButton.setEnabled(true);
         splitButton.setEnabled(false);
         configButton.setEnabled(true);
         settingsButton.setEnabled(true);
+
+        updateTable();
         updateDisplay();
     }
 
