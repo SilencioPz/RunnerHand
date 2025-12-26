@@ -15,6 +15,15 @@ public class GlobalKeyManager implements NativeKeyListener {
     private boolean enabled = true;
     private KeyConfig keyConfig;
 
+    static {
+        try {
+            Class.forName("com.github.kwhat.jnativehook.GlobalScreen");
+            System.out.println("✅ JNativeHook pré-carregado com sucesso");
+        } catch (Exception e) {
+            System.err.println("⚠ AVISO: JNativeHook não pré-carregado");
+        }
+    }
+
     private GlobalKeyManager() {
         keyActions = new HashMap<>();
         keyConfig = new KeyConfig();
@@ -24,16 +33,12 @@ public class GlobalKeyManager implements NativeKeyListener {
         logger.setUseParentHandlers(false);
 
         try {
-            if (!GlobalScreen.isNativeHookRegistered()) {
-                GlobalScreen.registerNativeHook();
-            }
+            System.out.println("Registrando NativeHook...");
+            GlobalScreen.registerNativeHook();
             GlobalScreen.addNativeKeyListener(this);
-            System.out.println("✓ Hotkeys globais ativadas com sucesso!");
-            System.out.println("✓ Teclas padrão: 1-7 (teclado principal)");
-            System.out.println("✓ Configure as teclas em 'Teclas' se necessário");
+            System.out.println("✓ Hotkeys globais ativadas!");
         } catch (NativeHookException e) {
-            System.err.println("✗ ERRO: Não foi possível registrar hotkeys globais");
-            System.err.println("Motivo: " + e.getMessage());
+            System.err.println("✗ ERRO ao registrar hotkeys:");
             e.printStackTrace();
         }
     }
@@ -77,9 +82,13 @@ public class GlobalKeyManager implements NativeKeyListener {
                     int awtKeyCode = entry.getValue();
                     int expectedNativeCode = KeyConfig.awtToNativeKeyCode(awtKeyCode);
 
+                    System.out.println("[DEBUG] Comparando: nativeKeyCode=" + nativeKeyCode +
+                            " | expectedNativeCode=" + expectedNativeCode +
+                            " | action=" + action);
+
                     if (nativeKeyCode == expectedNativeCode) {
                         executeAction(action);
-                        System.out.println("[HOTKEY] Ação executada: " + action);
+                        System.out.println("[HOTKEY] ✓ Ação executada: " + action);
                         break;
                     }
                 }
@@ -93,15 +102,23 @@ public class GlobalKeyManager implements NativeKeyListener {
     private void executeAction(String action) {
         Runnable runnable = keyActions.get(action);
         if (runnable != null) {
+            System.out.println("[EXEC] Executando ação: " + action);
             runnable.run();
         } else {
-            System.err.println("Ação não registrada: " + action);
+            System.err.println("✗ Ação não registrada: " + action);
+            System.err.println("Ações disponíveis: " + keyActions.keySet());
         }
     }
 
     public void registerAction(String action, Runnable runnable) {
         keyActions.put(action, runnable);
         System.out.println("✓ Ação registrada: " + action);
+    }
+
+    public void startListening() {
+        keyConfig = new KeyConfig();
+        System.out.println("✓ Listener reiniciado - configurações recarregadas");
+        System.out.println("Ações registradas: " + keyActions.keySet());
     }
 
     public void setEnabled(boolean enabled) {
@@ -117,8 +134,10 @@ public class GlobalKeyManager implements NativeKeyListener {
         try {
             if (GlobalScreen.isNativeHookRegistered()) {
                 GlobalScreen.unregisterNativeHook();
+                System.out.println("✓ Hotkeys globais desregistradas");
             }
         } catch (NativeHookException e) {
+            System.err.println("Erro ao limpar hotkeys: " + e.getMessage());
             e.printStackTrace();
         }
     }

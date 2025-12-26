@@ -140,6 +140,8 @@ public class RunnerHandGUI {
             }
         });
 
+        globalKeyManager.startListening();
+
         addHotkeyToggleToUI();
     }
 
