@@ -1,6 +1,14 @@
 //comando para gerar JAR: javac -d bin **/*.java DENTRO da pasta do Projeto (utilize Terminal no IntelliJ)
 
-import java.util.Base64;
+//CLAUDE: nas colunas Diferença e Melhor, o que quero: Tempo Ouro, menor que a coluna Anterior - tempo GOLD na coluna Melhor;
+//OBS: MELHOR DEVE SER UTILIZADA APENAS QUANDO TIVER GOLDS!!!
+//Tempo próximo da coluna Anterior - Verde (GOOD), na coluna Diferença; Tempo acima da coluna Anterior - Vermelho
+// (WORSE) na colunda Diferença;
+//Tempo igual à coluna anterior: 0:00:00:00 ou --:--:-- - Tipo de Azul, à sua escolha (EQUAL) na coluna Diferença;
+//OBS: QUANDO O TEMPO FOR BOM, RUIM OU IGUAL UTILIZAR NA COLUNA DIFERENÇA!!!
+
+import java.awt.List;
+import java.util.*;
 import java.io.FileOutputStream;
 import javax.swing.*;
 import java.awt.*;
@@ -12,8 +20,6 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
-import java.util.HashMap;
-import java.util.Map;
 
 public class RunnerHandGUI {
     private MyTimer timer;
@@ -31,6 +37,8 @@ public class RunnerHandGUI {
     private boolean showComparisons = true;
     private Map<Integer, ImageIcon> splitIcons = new HashMap<>();
     private RunCounter runCounter;
+    private GlobalKeyManager globalKeyManager;
+    private JLabel counterLabel;
 
     private final Color DARK_BG = new Color(30, 30, 30, 230);
     private final Color DARK_PANEL = new Color(45, 45, 45, 220);
@@ -51,86 +59,162 @@ public class RunnerHandGUI {
         runCounter = new RunCounter();
 
         setupGUI();
-        setupKeyBindings();
+        setupGlobalHotkeys();
+
+        showDefaultKeysInfo();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (globalKeyManager != null) {
+                globalKeyManager.cleanup();
+            }
+        }));
     }
 
-    private void setupKeyBindings() {
-        InputMap inputMap = backgroundPanel.getInputMap(JPanel.WHEN_IN_FOCUSED_WINDOW);
-        ActionMap actionMap = backgroundPanel.getActionMap();
+    private void showDefaultKeysInfo() {
+        SwingUtilities.invokeLater(() -> {
+            JOptionPane.showMessageDialog(
+                    null,
+                    "<html><div style='text-align: center;'><b>RUNNERHAND - TECLAS PADRÃO</b><br><br>" +
+                            "1 = Iniciar/Pausar<br>" +
+                            "2 = Split<br>" +
+                            "3 = Reset<br>" +
+                            "4 = Split Anterior<br>" +
+                            "5 = Pular Split<br>" +
+                            "6 = Comparar (liga/desliga)<br>" +
+                            "7 = Finalizar Run<br><br>" +
+                            "<i>Configure outras teclas em 'Teclas'</i><br>" +
+                            "<i>Hotkeys funcionam em segundo plano!</i></div></html>",
+                    "Teclas de Atalho",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+        });
+    }
 
-        inputMap.put(KeyStroke.getKeyStroke(keyConfig.getKeyCode("start_pause"), 0), "start_pause");
-        actionMap.put("start_pause", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
+    private void  setupGlobalHotkeys() {
+        globalKeyManager = GlobalKeyManager.getInstance();
+
+        globalKeyManager.registerAction("start_pause", () -> {
+            if (startPauseButton != null && startPauseButton.isEnabled()) {
                 startPauseButton.doClick();
             }
         });
 
-        inputMap.put(KeyStroke.getKeyStroke(keyConfig.getKeyCode("split"), 0), "split");
-        actionMap.put("split", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (splitButton.isEnabled()) splitButton.doClick();
+        globalKeyManager.registerAction("split", () -> {
+            if (splitButton != null && splitButton.isEnabled()) {
+                splitButton.doClick();
             }
         });
 
-        inputMap.put(KeyStroke.getKeyStroke(keyConfig.getKeyCode("reset"), 0), "reset");
-        actionMap.put("reset", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
+        globalKeyManager.registerAction("reset", () -> {
+            if (resetButton != null && resetButton.isEnabled()) {
                 resetButton.doClick();
             }
         });
 
-        inputMap.put(KeyStroke.getKeyStroke(keyConfig.getKeyCode("previous_split"), 0), "previous_split");
-        actionMap.put("previous_split", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (!timer.isRunning() && run.getCurrentSplitIndex() > 0) {
-                    run.previousSplit();
-                    updateTable();
-                }
-            }
-        });
-
-        inputMap.put(KeyStroke.getKeyStroke(keyConfig.getKeyCode("skip_split"), 0), "skip_split");
-        actionMap.put("skip_split", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (timer.isRunning() && run.getCurrentSplitIndex() < run.getSplits().size()) {
-                    run.skipSplit();
-                    int splitIndex = run.getCurrentSplitIndex() - 1;
-                    if (splitIndex >= 0 && splitIndex < tableModel.getRowCount()) {
-                        tableModel.setValueAt("SKIPPED", splitIndex, 3);
-                    }
-                    updateTable();
-                }
-            }
-        });
-
-        inputMap.put(KeyStroke.getKeyStroke(keyConfig.getKeyCode("compare_prev"), 0), "compare_prev");
-        actionMap.put("compare_prev", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                showComparisons = !showComparisons;
+        globalKeyManager.registerAction("previous_split", () -> {
+            if (!timer.isRunning() && run.getCurrentSplitIndex() > 0) {
+                run.previousSplit();
                 updateTable();
             }
         });
 
-        inputMap.put(KeyStroke.getKeyStroke(keyConfig.getKeyCode("finish_run"), 0), "finish_run");
-        actionMap.put("finish_run", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (timer.isRunning() && !run.isFinished()) {
-                    handleFinishRun();
+        globalKeyManager.registerAction("skip_split", () -> {
+            if (timer.isRunning() && run.getCurrentSplitIndex() < run.getSplits().size()) {
+                run.skipSplit();
+                int splitIndex = run.getCurrentSplitIndex() - 1;
+                if (splitIndex >= 0 && splitIndex < tableModel.getRowCount()) {
+                    tableModel.setValueAt("SKIPPED", splitIndex, 3);
                 }
+                updateTable();
             }
         });
+
+        globalKeyManager.registerAction("compare_prev", () -> {
+            showComparisons = !showComparisons;
+            updateTable();
+        });
+
+        globalKeyManager.registerAction("finish_run", () -> {
+            if (timer.isRunning() && !run.isFinished()) {
+                handleFinishRun();
+            }
+        });
+
+        addHotkeyToggleToUI();
     }
 
-    private void incrementRunCounter() {
-        String gameTitle = run.getRunTitle();
-        runCounter.incrementCounter(gameTitle);
+    private void addHotkeyToggleToUI() {
+        JCheckBox globalHotkeyCheckbox = new JCheckBox("Hotkeys Globais Ativas", true);
+        globalHotkeyCheckbox.setForeground(LIGHT_TEXT);
+        globalHotkeyCheckbox.setBackground(DARK_PANEL);
+        globalHotkeyCheckbox.setFocusable(false);
+        globalHotkeyCheckbox.setFont(new Font("Arial", Font.BOLD, 12));
+
+        globalHotkeyCheckbox.setToolTipText("Ativa/desativa teclas de atalho globais (funcionam mesmo com" +
+                " janela inativa)");
+
+        globalHotkeyCheckbox.addActionListener(e -> {
+            if (globalKeyManager != null) {
+                globalKeyManager.setEnabled(globalHotkeyCheckbox.isSelected());
+                String status = globalHotkeyCheckbox.isSelected() ? "ATIVADAS" : "DESATIVADAS";
+
+                JDialog messageDialog = new JDialog();
+                messageDialog.setTitle("Hotkeys Globais");
+                messageDialog.setSize(400, 150);
+                messageDialog.setLocationRelativeTo(backgroundPanel);
+                messageDialog.setModal(true);
+                messageDialog.setLayout(new BorderLayout());
+
+                JPanel msgPanel = new JPanel(new BorderLayout(10, 10));
+                msgPanel.setBackground(DARK_BG);
+                msgPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+                JLabel msgLabel = new JLabel(
+                        "<html><center><b>Hotkeys globais " + status + "</b><br><br>" +
+                                "As teclas de atalho agora funcionam<br>" +
+                                "mesmo com o jogo em primeiro plano.</center></html>",
+                        SwingConstants.CENTER
+                );
+                msgLabel.setForeground(LIGHT_TEXT);
+                msgLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+
+                JButton okButton = new JButton("OK");
+                okButton.addActionListener(ev -> messageDialog.dispose());
+                styleIconButton(okButton);
+
+                msgPanel.add(msgLabel, BorderLayout.CENTER);
+                msgPanel.add(okButton, BorderLayout.SOUTH);
+
+                messageDialog.add(msgPanel);
+                messageDialog.setVisible(true);
+            }
+        });
+
+        JPanel hotkeyPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        hotkeyPanel.setBackground(new Color(0, 0, 0, 100));
+        hotkeyPanel.setOpaque(true);
+        hotkeyPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, ACCENT_COLOR),
+                BorderFactory.createEmptyBorder(5, 0, 5, 0)
+        ));
+        hotkeyPanel.add(globalHotkeyCheckbox);
+
+        Component[] comps = backgroundPanel.getComponents();
+        for (Component comp : comps) {
+            if (comp instanceof JPanel) {
+                JPanel panel = (JPanel) comp;
+                if (panel.getLayout() instanceof BorderLayout) {
+                    Component centerComp = ((BorderLayout) panel.getLayout()).getLayoutComponent(BorderLayout.CENTER);
+                    if (centerComp instanceof JPanel) {
+                        JPanel centerPanel = (JPanel) centerComp;
+
+                        centerPanel.add(hotkeyPanel, BorderLayout.NORTH);
+                        centerPanel.revalidate();
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     private void setupGUI() {
@@ -183,8 +267,134 @@ public class RunnerHandGUI {
         frame.setVisible(true);
     }
 
+    private void loadPreviousRunData() {
+        try {
+            String fileName = run.getRunTitle().replaceAll("[^a-zA-Z0-9]", "_");
+            File dir = new File(".");
+
+            File[] files = dir.listFiles((d, name) -> {
+                String lowerName = name.toLowerCase();
+                return lowerName.startsWith(fileName.toLowerCase()) &&
+                        (lowerName.endsWith(".txt") || lowerName.endsWith(".html") || lowerName.endsWith(".htm"));
+            });
+
+            if (files != null && files.length > 0) {
+                Arrays.sort(files, (f1, f2) -> Long.compare(f2.lastModified(), f1.lastModified()));
+
+                String filePath = files[0].getAbsolutePath();
+
+                if (filePath.toLowerCase().endsWith(".html") || filePath.toLowerCase().endsWith(".htm")) {
+                    loadPreviousRunFromHTML(filePath);
+                } else {
+                    BufferedReader reader = new BufferedReader(new FileReader(filePath));
+                    String line;
+                    int splitIndex = 0;
+                    boolean readingSplits = false;
+
+                    while ((line = reader.readLine()) != null) {
+                        line = line.trim();
+
+                        if (line.equals("SPLITS:")) {
+                            readingSplits = true;
+                            continue;
+                        }
+
+                        if (line.equals("BEST SPLITS:")) {
+                            break;
+                        }
+
+                        if (readingSplits && line.contains("Partial:") && splitIndex < run.getPreviousRunSplits().size()) {
+                            String partialStr = line.substring(line.indexOf("Partial:") + 9).trim();
+                            partialStr = partialStr.replace(")", "").trim();
+
+                            if (!partialStr.equals("--:--:--")) {
+                                long partialTime = parseTimeFromString(partialStr);
+                                run.setPreviousTime(splitIndex, partialTime);
+                                System.out.println("✓ Tempo anterior carregado [Split " + (splitIndex+1) + "]: " +
+                                        formatTimeDetailed(partialTime));
+                            }
+                            splitIndex++;
+                        }
+                    }
+                    reader.close();
+                }
+
+                SwingUtilities.invokeLater(() -> {
+                    updateTable();
+                    System.out.println("✓ Tempos anteriores carregados de: " + files[0].getName());
+                });
+            } else {
+                System.out.println("ℹ Nenhum arquivo anterior encontrado para: " + fileName);
+            }
+        } catch (Exception e) {
+            System.out.println("⚠ Não foi possível carregar tempos anteriores: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private long parseTimeFromString(String timeStr) {
+        try {
+            String[] parts = timeStr.split(":");
+            if (parts.length != 3) return 0;
+
+            int hours = Integer.parseInt(parts[0]);
+            int minutes = Integer.parseInt(parts[1]);
+
+            String[] secParts = parts[2].split("\\.");
+            int seconds = Integer.parseInt(secParts[0]);
+            int millis = secParts.length > 1 ? Integer.parseInt(secParts[1]) : 0;
+
+            return (hours * 3600000L) + (minutes * 60000L) + (seconds * 1000L) + millis;
+        } catch (Exception e) {
+            System.err.println("Erro ao converter tempo: " + timeStr);
+            return 0;
+        }
+    }
+
+    private void loadPreviousRunFromHTML(String filePath) throws IOException {
+        StringBuilder htmlContent = new StringBuilder();
+        BufferedReader reader = new BufferedReader(new FileReader(filePath));
+        String line;
+
+        while ((line = reader.readLine()) != null) {
+            htmlContent.append(line).append("\n");
+        }
+        reader.close();
+
+        String html = htmlContent.toString();
+
+        int tableStart = html.indexOf("<table>");
+        if (tableStart != -1) {
+            int tableEnd = html.indexOf("</table>", tableStart);
+            if (tableEnd != -1) {
+                String tableHtml = html.substring(tableStart, tableEnd);
+                String[] rows = tableHtml.split("<tr>");
+
+                int splitIndex = 0;
+
+                for (String row : rows) {
+                    if (row.contains("<td>") && !row.contains("<th>")) {
+                        String[] cells = row.split("</td>");
+
+                        if (cells.length > 4 && splitIndex < run.getPreviousRunSplits().size()) {
+                            String partialCell = cells[4];
+                            int tdStart = partialCell.lastIndexOf("<td>");
+                            if (tdStart != -1) {
+                                String timeStr = partialCell.substring(tdStart + 4).trim();
+                                if (!timeStr.equals("--:--:--") && !timeStr.isEmpty()) {
+                                    long partialTime = parseTimeFromHTML(timeStr);
+                                    run.setPreviousTime(splitIndex, partialTime);
+                                }
+                            }
+                        }
+                        splitIndex++;
+                    }
+                }
+            }
+        }
+    }
+
     private JPanel createTitlePanel() {
-//        JPanel titlePanel = new JPanel(new BorderLayout(10, 10));
 
         titlePanel = new JPanel(new BorderLayout(10, 10));
 
@@ -257,15 +467,14 @@ public class RunnerHandGUI {
         titlePanel.add(titleLabel, BorderLayout.CENTER);
         titlePanel.add(aboutButton, BorderLayout.EAST);
 
-        JLabel counterLabel = new JLabel("Tentativa: 0");
+        counterLabel = new JLabel("Tentativa: 1");
         counterLabel.setFont(new Font("Arial", Font.PLAIN, 12));
         counterLabel.setForeground(new Color(150, 200, 255));
-
-        int count = runCounter.getCounter(run.getRunTitle());
-        counterLabel.setText("Tentativa: " + (count + 1));
+        counterLabel.setOpaque(true);
+        counterLabel.setBackground(new Color(0, 0, 0, 0));
 
         JPanel counterPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        counterPanel.setBackground(new Color(0, 0, 0, 0));
+        counterPanel.setOpaque(false);
         counterPanel.add(counterLabel);
 
         titlePanel.add(counterPanel, BorderLayout.SOUTH);
@@ -370,7 +579,8 @@ public class RunnerHandGUI {
         topPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
         topPanel.setOpaque(false);
 
-        JLabel logoLabel = ImageLoader.loadLogo("src/resources/silenciopz_logo2icon.png", 120, 0);
+        JLabel logoLabel = ImageLoader.loadLogo("src/resources/silenciopz_logo2icon.png",
+                120, 0);
         if (logoLabel.getIcon() == null) {
             logoLabel.setText("<html><center>RUNNER<br>HAND</center></html>");
             logoLabel.setFont(new Font("Arial", Font.BOLD, 16));
@@ -410,7 +620,7 @@ public class RunnerHandGUI {
         splitsLabel.setOpaque(false);
         centerPanel.add(splitsLabel, BorderLayout.NORTH);
 
-        String[] columns = {"", "#", "Nome", "Tempo", "Diferença", "Melhor"};
+        String[] columns = {"", "#", "Nome", "Tempo", "Diferença", "Melhor", "Anterior"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -447,11 +657,16 @@ public class RunnerHandGUI {
         splitsTable.getColumnModel().getColumn(3).setPreferredWidth(120);
         splitsTable.getColumnModel().getColumn(4).setPreferredWidth(100);
         splitsTable.getColumnModel().getColumn(5).setPreferredWidth(120);
+        splitsTable.getColumnModel().getColumn(6).setPreferredWidth(120);
 
         splitsTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
                                                            boolean isSelected, boolean hasFocus, int row, int column) {
+
+                setOpaque(true);
+                setIcon(null);
+
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
                 if (column == 2) {
@@ -481,7 +696,15 @@ public class RunnerHandGUI {
                     }
                 } else if (column == 5) {
                     c.setForeground(GOLD_COLOR);
-                } else {
+                    setFont(getFont().deriveFont(Font.BOLD));
+                }
+
+                else if (column == 6) {
+                    setForeground(new Color(150, 200, 255));
+                    setFont(getFont().deriveFont(Font.PLAIN));
+                }
+
+                else {
                     c.setForeground(LIGHT_TEXT);
                 }
 
@@ -548,8 +771,8 @@ public class RunnerHandGUI {
         resetButton = createStyledButton("Reset");
         resetButton.addActionListener(e -> handleReset());
 
-        JButton saveButton = createStyledButton("Salvar");
-        saveButton.addActionListener(e -> saveRunToFile());
+//        JButton saveButton = createStyledButton("Salvar TXT");
+//        saveButton.addActionListener(e -> saveRunToFile());
 
         JButton finishButton = createStyledButton("Finalizar");
         finishButton.addActionListener(e -> handleFinishRun());
@@ -564,8 +787,8 @@ public class RunnerHandGUI {
         bottomPanel.add(splitButton);
         bottomPanel.add(resetButton);
         bottomPanel.add(finishButton);
-        bottomPanel.add(htmlButton);
 //        bottomPanel.add(saveButton);
+        bottomPanel.add(htmlButton);
 
         return bottomPanel;
     }
@@ -607,7 +830,7 @@ public class RunnerHandGUI {
 
             saveRunToFile();
 
-            incrementRunCounter();
+//            incrementRunCounter();
 
             JOptionPane.showMessageDialog(backgroundPanel,
                     "RUN FINALIZADA!\n\nTempo Final: " + formatTimeDetailed(currentTime),
@@ -639,6 +862,11 @@ public class RunnerHandGUI {
     private void handleReset() {
         timer.reset();
 
+        if (run.getCurrentSplitIndex() > 0 ||
+                run.getSplits().stream().anyMatch(s -> s.getSplitTime() > 0)) {
+            runCounter.incrementCounter(run.getRunTitle());
+        }
+
         java.util.List<Split> currentSplits = new java.util.ArrayList<>();
         for (Split split : run.getSplits()) {
             Split newSplit = new Split(split.getName());
@@ -646,12 +874,23 @@ public class RunnerHandGUI {
             currentSplits.add(newSplit);
         }
 
+        java.util.List<Long> savedPreviousRuns = new java.util.ArrayList<>(run.getPreviousRunSplits());
+        java.util.List<Long> savedBestSplits = new java.util.ArrayList<>(run.getBestSplits());
+
         String currentTitle = run.getRunTitle();
         run = new Run(currentTitle);
 
         for (int i = 0; i < currentSplits.size(); i++) {
             Split split = currentSplits.get(i);
             run.addSplit(split.getName(), split.getImagePath());
+        }
+
+        for (int i = 0; i < Math.min(savedPreviousRuns.size(), run.getPreviousRunSplits().size()); i++) {
+            run.setPreviousTime(i, savedPreviousRuns.get(i));
+        }
+
+        for (int i = 0; i < Math.min(savedBestSplits.size(), run.getBestSplits().size()); i++) {
+            run.getBestSplits().set(i, savedBestSplits.get(i));
         }
 
         startPauseButton.setText("Iniciar");
@@ -662,25 +901,31 @@ public class RunnerHandGUI {
 
         updateTable();
         updateDisplay();
+        updateCounterDisplay();
     }
 
     private void updateTable() {
+        splitsTable.setEnabled(false);
         tableModel.setRowCount(0);
+
+        long currentRunTotal = 0;
 
         for (int i = 0; i < run.getSplits().size(); i++) {
             Split split = run.getSplits().get(i);
             String splitTime = "--:--:--";
             String difference = "--:--:--";
             String bestTime = "--:--:--";
+            String previousTime = "--:--:--";
 
             if (split.getSplitTime() > 0) {
                 long partialTime = run.getPartialTime(i);
                 if (partialTime > 0) {
                     splitTime = formatTimeDetailed(partialTime);
+                    currentRunTotal = split.getSplitTime();
 
-                    long bestPartial = run.getBestTime(i);
-                    if (bestPartial > 0 && showComparisons) {
-                        long diff = partialTime - bestPartial;
+                    long previousPartial = run.getPreviousTime(i);
+                    if (previousPartial > 0 && showComparisons) {
+                        long diff = partialTime - previousPartial;
                         if (diff > 0) {
                             difference = "+" + formatTimeDetailed(diff);
                         } else if (diff < 0) {
@@ -690,17 +935,126 @@ public class RunnerHandGUI {
                         }
                     }
 
-                    bestTime = bestPartial > 0 ? formatTimeDetailed(bestPartial) : "--:--:--";
+                    long bestPartial = run.getBestTime(i);
+                    if (bestPartial > 0 && partialTime <= bestPartial) {
+                        bestTime = formatTimeDetailed(bestPartial);
+                    } else {
+                        bestTime = "--:--:--";
+                    }
                 }
             }
 
+            long previousPartial = run.getPreviousTime(i);
+            if (previousPartial > 0) {
+                previousTime = formatTimeDetailed(previousPartial);
+            }
+
             ImageIcon icon = splitIcons.get(i);
-            Object[] row = {icon, i + 1, split.getName(), splitTime, difference, bestTime};
+            Object[] row = {icon, i + 1, split.getName(), splitTime,
+                    difference, bestTime, previousTime};
             tableModel.addRow(row);
         }
 
+        long totalPB = 0;
+        boolean hasPB = false;
+        for (int i = 0; i < run.getPreviousRunSplits().size(); i++) {
+            long prevTime = run.getPreviousTime(i);
+            if (prevTime > 0) {
+                totalPB += prevTime;
+                hasPB = true;
+            }
+        }
+
+        long savedPB = loadSavedPB();
+        if (savedPB > 0 && (totalPB == 0 || savedPB < totalPB)) {
+            totalPB = savedPB;
+            hasPB = true;
+        }
+
+        if (run.isFinished() && currentRunTotal > 0) {
+            if (totalPB == 0 || currentRunTotal < totalPB) {
+                totalPB = currentRunTotal;
+                hasPB = true;
+                savePB(totalPB); // Salvar novo PB
+                System.out.println("🏆 NOVO PERSONAL BEST! " + formatTimeDetailed(totalPB));
+            }
+        }
+
+        Object[] separatorRow = {
+                null,
+                "───",
+                "────────────────────────────────",
+                "──────────────",
+                "──────────────",
+                "──────────────",
+                "──────────────"
+        };
+        tableModel.addRow(separatorRow);
+
+        String currentTimeDisplay = currentRunTotal > 0 ?
+                formatTimeDetailed(currentRunTotal) : "--:--:--";
+
+        Object[] currentRunRow = {
+                null,
+                "⏱",
+                "Tempo desta Run",
+                "",
+                "",
+                "",
+                currentTimeDisplay
+        };
+        tableModel.addRow(currentRunRow);
+
+        String pbDisplay = hasPB ? formatTimeDetailed(totalPB) : "--:--:--";
+        Object[] pbRow = {
+                null,
+                "🏆",
+                "Personal Best (PB)",
+                "",
+                "",
+                "",
+                pbDisplay
+        };
+        tableModel.addRow(pbRow);
+
+        splitsTable.setEnabled(true);
+        splitsTable.revalidate();
+        splitsTable.repaint();
+
         if (run.getCurrentSplitIndex() < splitsTable.getRowCount()) {
             splitsTable.setRowSelectionInterval(run.getCurrentSplitIndex(), run.getCurrentSplitIndex());
+        }
+    }
+
+    private long loadSavedPB() {
+        try {
+            String fileName = run.getRunTitle().replaceAll("[^a-zA-Z0-9]", "_") + "_pb.txt";
+            File pbFile = new File(fileName);
+
+            if (pbFile.exists()) {
+                BufferedReader reader = new BufferedReader(new FileReader(pbFile));
+                String line = reader.readLine();
+                reader.close();
+
+                if (line != null && !line.trim().isEmpty()) {
+                    return Long.parseLong(line.trim());
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠ Não foi possível carregar PB salvo: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    private void savePB(long pbTime) {
+        try {
+            String fileName = run.getRunTitle().replaceAll("[^a-zA-Z0-9]", "_") + "_pb.txt";
+            BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
+            writer.write(String.valueOf(pbTime));
+            writer.close();
+            System.out.println("💾 PB salvo: " + formatTimeDetailed(pbTime));
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao salvar PB: " + e.getMessage());
         }
     }
 
@@ -722,20 +1076,21 @@ public class RunnerHandGUI {
     }
 
     private void updateCounterDisplay() {
-        if (titlePanel != null) {
-            Component[] comps = titlePanel.getComponents();
-            for (Component comp : comps) {
-                if (comp instanceof JPanel) {
-                    Component[] subComps = ((JPanel) comp).getComponents();
-                    for (Component subComp : subComps) {
-                        if (subComp instanceof JLabel && ((JLabel) subComp).getText().startsWith("Tentativa:")) {
-                            int count = runCounter.getCounter(run.getRunTitle());
-                            ((JLabel) subComp).setText("Tentativa: " + (count + 1));
-                            break;
-                        }
-                    }
+        if (counterLabel != null) {
+            int count = runCounter.getCounter(run.getRunTitle());
+
+            counterLabel.setText(""); // Limpa primeiro
+            counterLabel.repaint();   // Força redesenho
+
+            SwingUtilities.invokeLater(() -> {
+                counterLabel.setText("Tentativa: " + (count + 1));
+                counterLabel.revalidate();
+                counterLabel.repaint();
+
+                if (counterLabel.getParent() != null) {
+                    counterLabel.getParent().repaint();
                 }
-            }
+            });
         }
     }
 
@@ -815,13 +1170,14 @@ public class RunnerHandGUI {
         titleLabelDialog.setFont(new Font("Arial", Font.BOLD, 14));
 
         String[] actions = {
-                "Iniciar/Pausar", "Split", "Reset",
-                "Split Anterior", "Pular Split", "Comparar Anterior"
+                "Iniciar/Pausar (1)", "Split (2)", "Reset (3)",
+                "Split Anterior (4)", "Pular Split (5)", "Comparar (6)",
+                "Finalizar Run (7)"
         };
 
         String[] keys = {
                 "start_pause", "split", "reset",
-                "previous_split", "skip_split", "compare_prev"
+                "previous_split", "skip_split", "compare_prev", "finish_run"
         };
 
         JPanel gridPanel = new JPanel(new GridLayout(actions.length, 2, 15, 15));
@@ -859,7 +1215,7 @@ public class RunnerHandGUI {
                             keyFields[index].setText(KeyConfig.getKeyName(e.getKeyCode()));
                             keyFields[index].setForeground(ACCENT_COLOR);
                             keyFields[index].removeKeyListener(this);
-                            setupKeyBindings();
+                            setupGlobalHotkeys();
                         }
                     });
                 }
@@ -920,13 +1276,12 @@ public class RunnerHandGUI {
         }
     }
 
-    // Modificar o método saveRunToFile() para incluir HTML:
     private void saveRunToFile() {
         Object[] options = {"Texto (.txt)", "HTML (.html)", "Ambos", "Cancelar"};
         int choice = JOptionPane.showOptionDialog(backgroundPanel,
-                "Escolha o formato para salvar:\n\n" +
-                        "• HTML: Salva com imagens EMBEDDADAS\n" +
-                        "• Texto: Formato simples sem imagens",
+                "<html><b>Escolha o formato para salvar:</b><br><br>" +
+                        "• <font color='#00ff80'>HTML</font>: Salva com imagens EMBEDDADAS (recomendado)<br>" +
+                        "• <font color='#00aaff'>TXT</font>: Formato simples para visualização rápida</html>",
                 "Salvar Run",
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.QUESTION_MESSAGE,
@@ -1109,35 +1464,6 @@ public class RunnerHandGUI {
             }
         });
 
-        JButton loadHTMLButton = createStyledButton("Carregar HTML");
-        loadHTMLButton.addActionListener(e -> {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
-                @Override
-                public boolean accept(File f) {
-                    return f.isDirectory() ||
-                            f.getName().toLowerCase().endsWith(".html") ||
-                            f.getName().toLowerCase().endsWith(".htm");
-                }
-                @Override
-                public String getDescription() {
-                    return "Arquivos HTML (*.html, *.htm)";
-                }
-            });
-
-            if (fileChooser.showOpenDialog(configDialog) == JFileChooser.APPROVE_OPTION) {
-                try {
-                    loadRunFromHTML(fileChooser.getSelectedFile().getAbsolutePath());
-                    configDialog.dispose();
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(configDialog,
-                            "Erro ao carregar HTML: " + ex.getMessage(),
-                            "Erro",
-                            JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-
         imagePanel.add(imageLabel, BorderLayout.WEST);
         imagePanel.add(imagePathField, BorderLayout.CENTER);
         imagePanel.add(selectImageButton, BorderLayout.EAST);
@@ -1179,12 +1505,12 @@ public class RunnerHandGUI {
 
         JButton removeButton = createStyledButton("Remover");
         JButton clearButton = createStyledButton("Limpar");
-        JButton loadButton = createStyledButton("Carregar");
+        JButton loadButton = createStyledButton("Carregar Run");
 
         listControls.add(removeButton);
         listControls.add(clearButton);
         listControls.add(loadButton);
-        listControls.add(loadHTMLButton);
+//        listControls.add(loadHTMLButton);
 
         inputPanel.add(listControls, BorderLayout.SOUTH);
         configPanel.add(inputPanel, BorderLayout.CENTER);
@@ -1223,31 +1549,95 @@ public class RunnerHandGUI {
 
         loadButton.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setFileFilter(new javax.swing.filechooser.FileFilter() {
+                @Override
+                public boolean accept(File f) {
+                    return f.isDirectory() ||
+                            f.getName().toLowerCase().endsWith(".html") ||
+                            f.getName().toLowerCase().endsWith(".htm") ||
+                            f.getName().toLowerCase().endsWith(".txt");
+                }
+
+                @Override
+                public String getDescription() {
+                    return "Runs do RunnerHand (*.html, *.txt)";
+                }
+            });
+
             if (fileChooser.showOpenDialog(configDialog) == JFileChooser.APPROVE_OPTION) {
+                String path = fileChooser.getSelectedFile().getAbsolutePath();
                 try {
-                    BufferedReader reader = new BufferedReader(new FileReader(fileChooser.getSelectedFile()));
-                    listModel.clear();
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        if (!line.trim().isEmpty() && !line.startsWith("Run Title:") &&
-                                !line.startsWith("Total Time:") && !line.startsWith("SPLITS:") &&
-                                !line.startsWith("BEST SPLITS:")) {
-                            String splitName = line.trim().replaceAll("^\\d+\\.\\s*", "").split("-")[0].trim();
-                            if (!splitName.isEmpty()) {
-                                listModel.addElement(new SplitItem(splitName, null));
+                    if (path.toLowerCase().endsWith(".html") || path.toLowerCase().endsWith(".htm")) {
+                        loadRunFromHTML(path);
+                        titleLabel.setText(run.getRunTitle());
+
+                        splitIcons.clear();
+                        for (int i = 0; i < run.getSplits().size(); i++) {
+                            Split split = run.getSplits().get(i);
+                            if (split.getImagePath() != null && !split.getImagePath().isEmpty()) {
+                                ImageIcon icon = loadAndResizeIcon(split.getImagePath());
+                                if (icon != null) {
+                                    splitIcons.put(i, icon);
+                                }
                             }
                         }
+
+                        isConfigured = true;
+                        updateTable();
+                        configDialog.dispose();
+
+                        long totalPB = 0;
+                        for (int i = 0; i < run.getPreviousRunSplits().size(); i++) {
+                            totalPB += run.getPreviousTime(i);
+                        }
+
+                        JOptionPane.showMessageDialog(null,
+                                "Run carregada do HTML com sucesso!\n" +
+                                        "Splits: " + run.getSplits().size() + "\n" +
+                                        "Tempos anteriores carregados na coluna ANTERIOR.\n\n" +
+                                        "------------------------------------\n" +
+                                        "Personal Best (PB): " + formatTimeDetailed(totalPB),
+                                "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        run.loadRunFromFile(path);
+                        titleLabel.setText(run.getRunTitle());
+
+                        loadPreviousRunData();
+
+                        splitIcons.clear();
+                        for (int i = 0; i < run.getSplits().size(); i++) {
+                            Split split = run.getSplits().get(i);
+                            if (split.getImagePath() != null && !split.getImagePath().isEmpty()) {
+                                ImageIcon icon = loadAndResizeIcon(split.getImagePath());
+                                if (icon != null) {
+                                    splitIcons.put(i, icon);
+                                }
+                            }
+                        }
+
+                        isConfigured = true;
+                        updateTable();
+                        configDialog.dispose();
+
+                        long totalPB = 0;
+                        for (int i = 0; i < run.getPreviousRunSplits().size(); i++) {
+                            totalPB += run.getPreviousTime(i);
+                        }
+
+                        JOptionPane.showMessageDialog(null,
+                                "Run carregada do TXT com sucesso!\n" +
+                                        "Splits: " + run.getSplits().size() + "\n" +
+                                        "Tempos anteriores carregados na coluna ANTERIOR.\n\n" +
+                                        "------------------------------------\n" +
+                                        "Personal Best (PB): " + formatTimeDetailed(totalPB),
+                                "Sucesso", JOptionPane.INFORMATION_MESSAGE);
                     }
-                    reader.close();
-                    JOptionPane.showMessageDialog(configDialog,
-                            "Splits carregados com sucesso!",
-                            "Sucesso",
-                            JOptionPane.INFORMATION_MESSAGE);
+
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(configDialog,
-                            "Erro ao carregar arquivo: " + ex.getMessage(),
-                            "Erro",
-                            JOptionPane.ERROR_MESSAGE);
+                            "Erro ao carregar run: " + ex.getMessage(),
+                            "Erro", JOptionPane.ERROR_MESSAGE);
+                    ex.printStackTrace();
                 }
             }
         });
@@ -1255,6 +1645,17 @@ public class RunnerHandGUI {
         saveButton.addActionListener(e -> {
             if (listModel.size() > 0) {
                 String currentTitle = run.getRunTitle();
+
+                java.util.List<Long> savedPreviousRuns = new java.util.ArrayList<>(run.getPreviousRunSplits());
+                java.util.List<Long> savedBestSplits = new java.util.ArrayList<>(run.getBestSplits());
+
+                java.util.List<Split> currentSplits = new java.util.ArrayList<>();
+                for (Split split : run.getSplits()) {
+                    Split newSplit = new Split(split.getName());
+                    newSplit.setImagePath(split.getImagePath());
+                    currentSplits.add(newSplit);
+                }
+
                 run = new Run(currentTitle);
                 splitIcons.clear();
                 tableModel.setRowCount(0);
@@ -1274,12 +1675,20 @@ public class RunnerHandGUI {
                     }
                 }
 
+                for (int i = 0; i < Math.min(savedPreviousRuns.size(), run.getPreviousRunSplits().size()); i++) {
+                    run.setPreviousTime(i, savedPreviousRuns.get(i));
+                }
+
+                for (int i = 0; i < Math.min(savedBestSplits.size(), run.getBestSplits().size()); i++) {
+                    run.getBestSplits().set(i, savedBestSplits.get(i));
+                }
+
                 isConfigured = true;
                 configDialog.dispose();
                 updateTable();
 
                 JOptionPane.showMessageDialog(configDialog,
-                        listModel.size() + " splits configurados com sucesso!",
+                        listModel.size() + " splits configurados com sucesso!\nTempos anteriores preservados.",
                         "Configuração Salva",
                         JOptionPane.INFORMATION_MESSAGE);
             } else {
@@ -1317,14 +1726,12 @@ public class RunnerHandGUI {
 
         run = new Run(runTitle);
         splitIcons.clear();
-        tableModel.setRowCount(0);
 
         int tableStart = html.indexOf("<table>");
         if (tableStart != -1) {
             int tableEnd = html.indexOf("</table>", tableStart);
             if (tableEnd != -1) {
                 String tableHtml = html.substring(tableStart, tableEnd);
-
                 String[] rows = tableHtml.split("<tr>");
 
                 int splitIndex = 0;
@@ -1343,10 +1750,9 @@ public class RunnerHandGUI {
                                     int imgEnd = row.indexOf("'", imgStart + 5);
                                     if (imgEnd != -1) {
                                         String base64Data = row.substring(imgStart + 5, imgEnd);
-
                                         String[] parts = base64Data.split(",");
                                         if (parts.length == 2) {
-                                            String imageType = "jpeg"; // padrão
+                                            String imageType = "png";
                                             if (parts[0].contains("jpeg")) imageType = "jpg";
                                             else if (parts[0].contains("png")) imageType = "png";
 
@@ -1363,13 +1769,24 @@ public class RunnerHandGUI {
                                     }
                                 }
 
+                                String[] cells = row.split("</td>");
+                                long partialTime = 0;
+
+                                if (cells.length > 4) {
+                                    String partialCell = cells[4];
+                                    int tdStart = partialCell.lastIndexOf("<td>");
+                                    if (tdStart != -1) {
+                                        String timeStr = partialCell.substring(tdStart + 4).trim();
+                                        if (!timeStr.equals("--:--:--") && !timeStr.isEmpty()) {
+                                            partialTime = parseTimeFromHTML(timeStr);
+                                        }
+                                    }
+                                }
+
                                 run.addSplit(splitName, imagePath);
 
-                                if (imagePath != null) {
-                                    ImageIcon icon = loadAndResizeIcon(imagePath);
-                                    if (icon != null) {
-                                        splitIcons.put(splitIndex, icon);
-                                    }
+                                if (partialTime > 0) {
+                                    run.setPreviousTime(splitIndex, partialTime);
                                 }
 
                                 splitIndex++;
@@ -1380,15 +1797,30 @@ public class RunnerHandGUI {
             }
         }
 
-        isConfigured = true;
-        updateTable();
-        titleLabel.setText(runTitle);
+        System.out.println("✓ HTML carregado: " + run.getSplits().size() + " splits");
+        System.out.println("✓ Tempos anteriores carregados:");
+        for (int i = 0; i < run.getPreviousRunSplits().size(); i++) {
+            System.out.println("  Split " + (i+1) + ": " + formatTimeDetailed(run.getPreviousTime(i)));
+        }
+    }
 
-        JOptionPane.showMessageDialog(backgroundPanel,
-                "Run carregada do HTML com sucesso!\n" +
-                        "Foram carregados " + run.getSplits().size() + " splits.",
-                "Sucesso",
-                JOptionPane.INFORMATION_MESSAGE);
+    private long parseTimeFromHTML(String timeStr) {
+        try {
+            String[] parts = timeStr.split(":");
+            if (parts.length != 3) return 0;
+
+            int hours = Integer.parseInt(parts[0]);
+            int minutes = Integer.parseInt(parts[1]);
+
+            String[] secParts = parts[2].split("\\.");
+            int seconds = Integer.parseInt(secParts[0]);
+            int millis = secParts.length > 1 ? Integer.parseInt(secParts[1]) : 0;
+
+            return (hours * 3600000L) + (minutes * 60000L) + (seconds * 1000L) + millis;
+        } catch (Exception e) {
+            System.err.println("Erro ao converter tempo: " + timeStr);
+            return 0;
+        }
     }
 
     private void updateDisplay() {
@@ -1398,7 +1830,8 @@ public class RunnerHandGUI {
         String[] parts = timeString.split("\\.");
         if (parts.length == 2) {
             String htmlTime = String.format(
-                    "<html><span style='font-size: 52px;'>%s.</span><span style='color: #00ff88; font-size: 36px;'>%s</span></html>",
+                    "<html><span style='font-size: 52px;'>%s.</span><span style='color: #00ff88; " +
+                            "font-size: 36px;'>%s</span></html>",
                     parts[0], parts[1]
             );
             timeLabel.setText(htmlTime);

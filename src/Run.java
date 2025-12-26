@@ -1,10 +1,8 @@
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.util.Base64;
+import java.util.*;
 import java.io.ByteArrayOutputStream;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Run {
     private List<Split> splits;
@@ -24,13 +22,6 @@ public class Run {
     public Run(String title) {
         this();
         this.runTitle = title;
-    }
-
-    public void addSplit(String name) {
-        Split split = new Split(name);
-        splits.add(split);
-        bestSplits.add(0L);
-        previousRunSplits.add(0L);
     }
 
     public void addSplit(String name, String imagePath) {
@@ -155,7 +146,6 @@ public class Run {
             String partialTime = getPartialTime(i) > 0 ? formatTime(getPartialTime(i)) : "--:--:--";
             String bestTime = bestSplits.get(i) > 0 ? formatTime(bestSplits.get(i)) : "--:--:--";
 
-            // Calcular diferença para exibição
             String diffClass = "";
             String diffText = "--:--:--";
             if (getPartialTime(i) > 0 && bestSplits.get(i) > 0) {
@@ -173,7 +163,6 @@ public class Run {
 
             writer.write("<tr>");
 
-            // Coluna do ícone (com imagem EMBEDDADA em base64)
             writer.write("<td>");
             if (split.getImagePath() != null && !split.getImagePath().isEmpty()) {
                 try {
@@ -198,7 +187,6 @@ public class Run {
 
         writer.write("</table>");
 
-        // Adicionar melhores tempos
         writer.write("<h2>MELHORES TEMPOS POR SPLIT</h2>");
         writer.write("<table>");
         writer.write("<tr><th>#</th><th>Split</th><th>Melhor Tempo</th></tr>");
@@ -225,7 +213,6 @@ public class Run {
         writer.close();
     }
 
-    // Método para converter imagem para base64
     private String imageToBase64(String imagePath) throws IOException {
         File file = new File(imagePath);
         if (!file.exists()) return "";
@@ -246,18 +233,6 @@ public class Run {
         }
 
         return "";
-    }
-
-    private long parseTime(String timeStr) {
-        String[] parts = timeStr.split("[:.]");
-        if (parts.length == 4) {
-            long hours = Long.parseLong(parts[0]);
-            long minutes = Long.parseLong(parts[1]);
-            long seconds = Long.parseLong(parts[2]);
-            long millis = Long.parseLong(parts[3]);
-            return (hours * 3600000L) + (minutes * 60000L) + (seconds * 1000L) + millis;
-        }
-        return 0;
     }
 
     public void saveRun(String filePath) throws IOException {
@@ -321,5 +296,125 @@ public class Run {
 
     public void setRunTitle(String title) {
         this.runTitle = title;
+    }
+
+    public void loadRunFromFile(String filePath) throws IOException {
+        BufferedReader reader = new BufferedReader(new FileReader(filePath));
+        String line;
+
+        splits.clear();
+        currentSplitIndex = 0;
+//        finished = false;
+
+        boolean readingSplits = false;
+        boolean readingBestSplits = false;
+        Map<Integer, Long> bestTimes = new HashMap<>();
+
+        while ((line = reader.readLine()) != null) {
+            line = line.trim();
+
+            if (line.startsWith("Run Title:")) {
+                runTitle = line.substring(11).trim();
+                continue;
+            }
+
+            if (line.equals("SPLITS:")) {
+                readingSplits = true;
+                readingBestSplits = false;
+                continue;
+            }
+
+            if (line.equals("BEST SPLITS:")) {
+                readingSplits = false;
+                readingBestSplits = true;
+                continue;
+            }
+
+            if (readingSplits && !line.isEmpty()) {
+                String[] parts = line.split(" - ");
+                if (parts.length >= 2) {
+                    String splitName = parts[0].replaceAll("^\\d+\\.\\s*", "").trim();
+
+                    String timeStr = parts[1].split("\\(")[0].trim();
+                    long splitTime = parseTime(timeStr);
+
+                    Split split = new Split(splitName);
+                    split.setSplitTime(splitTime);
+                    splits.add(split);
+                    bestSplits.add(0L);
+                    previousRunSplits.add(0L);
+                }
+            }
+
+            if (readingBestSplits && !line.isEmpty()) {
+                String[] parts = line.split("\\. ");
+                if (parts.length >= 2) {
+                    try {
+                        int index = Integer.parseInt(parts[0].trim()) - 1;
+                        long bestTime = parseTime(parts[1].trim());
+                        bestTimes.put(index, bestTime);
+                    } catch (NumberFormatException e) {
+                        // Ignora linhas com formato incorreto
+                    }
+                }
+            }
+        }
+        reader.close();
+
+        for (Map.Entry<Integer, Long> entry : bestTimes.entrySet()) {
+            int index = entry.getKey();
+            if (index >= 0 && index < splits.size()) {
+                long bestSplitTime = entry.getValue();
+
+                long bestPartial;
+                if (index == 0) {
+                    bestPartial = bestSplitTime;
+                } else {
+                    long previousBest = bestTimes.getOrDefault(index - 1, 0L);
+                    bestPartial = bestSplitTime - previousBest;
+                }
+
+                bestSplits.set(index, bestPartial);
+            }
+        }
+
+        System.out.println("✓ Run carregada: " + runTitle + " com " + splits.size() + " splits");
+    }
+
+    private long parseTime(String timeStr) {
+        try {
+            String[] parts = timeStr.split(":");
+            if (parts.length != 3) return 0;
+
+            int hours = Integer.parseInt(parts[0]);
+            int minutes = Integer.parseInt(parts[1]);
+
+            String[] secParts = parts[2].split("\\.");
+            int seconds = Integer.parseInt(secParts[0]);
+            int centiseconds = secParts.length > 1 ? Integer.parseInt(secParts[1]) : 0;
+
+            return (hours * 3600000L) + (minutes * 60000L) + (seconds * 1000L) + (centiseconds * 10L);
+        } catch (Exception e) {
+            System.err.println("Erro ao converter tempo: " + timeStr);
+            return 0;
+        }
+    }
+
+    public List<Long> getPreviousRunSplits() {
+        return previousRunSplits;
+    }
+
+    public void setPreviousTime(int index, long time) {
+        if (index >= 0 && index < previousRunSplits.size()) {
+            previousRunSplits.set(index, time);
+        }
+    }
+
+    public List<Long> getBestSplits() {
+        return bestSplits;
+    }
+
+    public void setBestSplits(List<Long> bestSplits) {
+        this.bestSplits = bestSplits;
     }
 }

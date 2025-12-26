@@ -4,13 +4,11 @@ import java.util.Map;
 import java.util.Properties;
 
 public class RunCounter {
-    private static final String COUNTER_FILE = "run_counter.properties";
-    private Map<String, Integer> counters;
-    private Properties properties;
+    private static final String COUNTER_FILE = "runnerhand_counters.properties";
+    private Properties counters;
 
     public RunCounter() {
-        counters = new HashMap<>();
-        properties = new Properties();
+        counters = new Properties();
         loadCounters();
     }
 
@@ -18,43 +16,39 @@ public class RunCounter {
         try {
             File file = new File(COUNTER_FILE);
             if (file.exists()) {
-                properties.load(new FileInputStream(file));
-                for (String key : properties.stringPropertyNames()) {
-                    counters.put(key, Integer.parseInt(properties.getProperty(key)));
+                try (FileInputStream fis = new FileInputStream(file)) {
+                    counters.load(fis);
                 }
+                System.out.println("✓ Contadores carregados: " + counters.size() + " runs");
             }
         } catch (Exception e) {
-            System.out.println("Erro ao carregar contador: " + e.getMessage());
+            System.err.println("Erro ao carregar contadores: " + e.getMessage());
         }
-    }
-
-    public void incrementCounter(String gameTitle) {
-        int current = counters.getOrDefault(gameTitle, 0);
-        counters.put(gameTitle, current + 1);
-        saveCounters();
-    }
-
-    public int getCounter(String gameTitle) {
-        return counters.getOrDefault(gameTitle, 0);
-    }
-
-    public void resetCounter(String gameTitle) {
-        counters.put(gameTitle, 0);
-        saveCounters();
     }
 
     private void saveCounters() {
         try {
-            for (Map.Entry<String, Integer> entry : counters.entrySet()) {
-                properties.setProperty(entry.getKey(), entry.getValue().toString());
+            try (FileOutputStream fos = new FileOutputStream(COUNTER_FILE)) {
+                counters.store(fos, "RunnerHand Run Attempt Counters");
             }
-            properties.store(new FileOutputStream(COUNTER_FILE), "RunnerHand Run Counters");
         } catch (Exception e) {
-            System.out.println("Erro ao salvar contadores: " + e.getMessage());
+            System.err.println("Erro ao salvar contadores: " + e.getMessage());
         }
     }
 
-    public Map<String, Integer> getAllCounters() {
-        return new HashMap<>(counters);
+    public int getCounter(String runTitle) {
+        String value = counters.getProperty(runTitle, "0");
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    public void incrementCounter(String runTitle) {
+        int current = getCounter(runTitle);
+        counters.setProperty(runTitle, String.valueOf(current + 1));
+        saveCounters();
+        System.out.println("📊 Contador atualizado: " + runTitle + " = " + (current + 1));
     }
 }
