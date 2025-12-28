@@ -1,12 +1,5 @@
 //comando para gerar JAR: javac -d bin **/*.java DENTRO da pasta do Projeto (utilize Terminal no IntelliJ)
 
-//CLAUDE: nas colunas Diferença e Melhor, o que quero: Tempo Ouro, menor que a coluna Anterior - tempo GOLD na coluna Melhor;
-//OBS: MELHOR DEVE SER UTILIZADA APENAS QUANDO TIVER GOLDS!!!
-//Tempo próximo da coluna Anterior - Verde (GOOD), na coluna Diferença; Tempo acima da coluna Anterior - Vermelho
-// (WORSE) na colunda Diferença;
-//Tempo igual à coluna anterior: 0:00:00:00 ou --:--:-- - Tipo de Azul, à sua escolha (EQUAL) na coluna Diferença;
-//OBS: QUANDO O TEMPO FOR BOM, RUIM OU IGUAL UTILIZAR NA COLUNA DIFERENÇA!!!
-
 import java.awt.List;
 import java.util.*;
 import java.io.FileOutputStream;
@@ -530,15 +523,15 @@ public class RunnerHandGUI {
         devLabel.setFont(new Font("Arial", Font.BOLD, 16));
         devLabel.setForeground(LIGHT_TEXT);
 
-        JLabel versionLabel = new JLabel("Versão: 1.0", SwingConstants.CENTER);
+        JLabel versionLabel = new JLabel("Versão: 1.0.2", SwingConstants.CENTER);
         versionLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         versionLabel.setForeground(LIGHT_TEXT);
 
-        JLabel siteLabel = new JLabel("<html><center>Site: <a href='https://silenciopz.neocities.org/'>" +
+        JLabel siteLabel = new JLabel("<html><center>Site: <a href='' style='color: #FFFFFF;'>" +
                 "https://silenciopz.neocities.org/</a></center></html>",
                 SwingConstants.CENTER);
         siteLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        siteLabel.setForeground(new Color(100, 200, 255));
+        siteLabel.setForeground(new Color(240, 240, 240));
         siteLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         siteLabel.addMouseListener(new MouseAdapter() {
