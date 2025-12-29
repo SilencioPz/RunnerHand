@@ -1498,14 +1498,15 @@ public class RunnerHandGUI {
         JPanel listControls = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         listControls.setBackground(DARK_PANEL);
 
+        JButton timerOnlyButton = createStyledButton("Apenas Timer");
         JButton removeButton = createStyledButton("Remover");
         JButton clearButton = createStyledButton("Limpar");
         JButton loadButton = createStyledButton("Carregar Run");
 
+        listControls.add(timerOnlyButton);
         listControls.add(removeButton);
         listControls.add(clearButton);
         listControls.add(loadButton);
-//        listControls.add(loadHTMLButton);
 
         inputPanel.add(listControls, BorderLayout.SOUTH);
         configPanel.add(inputPanel, BorderLayout.CENTER);
@@ -1539,6 +1540,24 @@ public class RunnerHandGUI {
                     "Confirmar",
                     JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
                 listModel.clear();
+            }
+        });
+
+        timerOnlyButton.addActionListener(e -> {
+            int choice = JOptionPane.showConfirmDialog(configDialog,
+                    "<html><b>Ativar modo 'Apenas Timer'?</b><br><br>" +
+                            "Isso vai:<br>" +
+                            "• Ignorar os splits configurados<br>" +
+                            "• Usar apenas o cronômetro<br>" +
+                            "• Você poderá salvar o tempo depois<br><br>" +
+                            "Deseja continuar?</html>",
+                    "Modo Timer Only",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE);
+
+            if (choice == JOptionPane.YES_OPTION) {
+                setupTimerOnlyMode();
+                configDialog.dispose();
             }
         });
 
@@ -1696,6 +1715,28 @@ public class RunnerHandGUI {
 
         configDialog.add(configPanel);
         configDialog.setVisible(true);
+    }
+
+    private void setupTimerOnlyMode() {
+        run.getSplits().clear();
+        run.getBestSplits().clear();
+        run.getPreviousRunSplits().clear();
+        splitIcons.clear();
+
+        run.addSplit("Timer Only", null);
+
+        isConfigured = true;
+        updateTable();
+
+        JOptionPane.showMessageDialog(backgroundPanel,
+                "<html><b>Modo 'Apenas Timer' ativado!</b><br><br>" +
+                        "• Use os botões normalmente<br>" +
+                        "• Iniciar/Pausar para controlar o timer<br>" +
+                        "• Reset para reiniciar<br>" +
+                        "• Você pode salvar em TXT ou HTML depois<br><br>" +
+                        "<i>O tempo será registrado sem splits!</i></html>",
+                "Timer Only",
+                JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void loadRunFromHTML(String filePath) throws IOException {
